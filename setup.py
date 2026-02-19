@@ -1,4 +1,6 @@
 import sys
+import os
+import glob
 
 from setuptools import setup, Extension
 
@@ -30,6 +32,18 @@ srcdir = 'py%i%i//' % sys.version_info[:2]
 
 include_dirs = ["PDCurses", "."]
 library_dirs = ["PDCurses/wincon"]
+
+# If a built pdcurses.lib is not available, compile PDCurses sources
+# directly into the extensions so building works without a prebuilt library.
+pdc_lib_path = os.path.join('PDCurses', 'wincon', 'pdcurses.lib')
+if not os.path.exists(pdc_lib_path):
+    wincon_sources = glob.glob(os.path.join('PDCurses', 'wincon', '*.c'))
+    pdcurses_sources = glob.glob(os.path.join('PDCurses', 'pdcurses', '*.c'))
+    pdc_sources = wincon_sources + pdcurses_sources
+    # remove pdcurses from libraries when building sources in-tree
+    libraries = [lib for lib in libraries if lib != 'pdcurses']
+else:
+    pdc_sources = []
 
 LONG_DESCRIPTION = """
 Adds support for the standard Python `curses` module on Windows. Based on
@@ -70,24 +84,24 @@ setup(
     license='PSF2',
     ext_modules=[
         Extension('_curses',
-                  # term.h and terminfo.c was removed from PDCurses in commit
-                  # 6b569295 ("Eliminated term.h, terminfo.c; moved mvcur() to
-                  # move.c"). They provide functions that are called
-                  # unconditionally by _cursesmodule.c, so we keep a copy of
-                  # the last versions in this repo.
-                  #
-                  # See https://github.com/wmcbrine/PDCurses/issue/55.
-                  sources=[srcdir + '_cursesmodule.c', 'terminfo.c'],
-                  define_macros=define_macros,
-                  include_dirs=include_dirs,
-                  library_dirs=library_dirs,
-                  libraries=libraries),
+              # term.h and terminfo.c was removed from PDCurses in commit
+              # 6b569295 ("Eliminated term.h, terminfo.c; moved mvcur() to
+              # move.c"). They provide functions that are called
+              # unconditionally by _cursesmodule.c, so we keep a copy of
+              # the last versions in this repo.
+              #
+              # See https://github.com/wmcbrine/PDCurses/issue/55.
+              sources=[srcdir + '_cursesmodule.c', 'terminfo.c'] + pdc_sources,
+              define_macros=define_macros,
+              include_dirs=include_dirs,
+              library_dirs=library_dirs,
+              libraries=libraries),
         Extension('_curses_panel',
-                  sources=[srcdir + '_curses_panel.c'],
-                  define_macros=define_macros,
-                  include_dirs=include_dirs,
-                  library_dirs=library_dirs,
-                  libraries=libraries)
+              sources=[srcdir + '_curses_panel.c'] + pdc_sources,
+              define_macros=define_macros,
+              include_dirs=include_dirs,
+              library_dirs=library_dirs,
+              libraries=libraries)
     ],
     project_urls={
         "GitHub repository": "https://github.com/zephyrproject-rtos/windows-curses",
@@ -108,6 +122,7 @@ setup(
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
         'Programming Language :: Python :: 3.13',
+        'Programming Language :: Python :: 3.14',
         'Programming Language :: Python :: Implementation :: CPython',
         'Topic :: Software Development',
         'Topic :: Software Development :: Libraries :: Python Modules',

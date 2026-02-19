@@ -120,6 +120,30 @@ Build instructions
     links the source code in `pyXY\` for each of the specified Python versions,
     producing wheels as output in `dist\`.
 
+Notes for Python 3.14 and local builds
+--------------------------------------
+
+This repository now includes support for Python 3.14. If a prebuilt
+`pdcurses.lib` is not present in `PDCurses/wincon`, `setup.py` will attempt to
+compile the PDCurses sources in-tree as part of the extension build. When
+building locally you can either let the build compile PDCurses for you, or
+build the wide-character library first using the Visual Studio developer
+environment and the provided helper script:
+
+In a Developer Command Prompt (x64):
+
+   build_pdcurses_wide.cmd
+
+After the library is available (`PDCurses/wincon/pdcurses.lib`) you can run
+the normal wheel build command, for example:
+
+   py -3.14 -m pip wheel . --no-deps -w dist
+
+If the build compiles PDCurses in-tree, the process will add the PDCurses
+source files to the extension compilation and link against system libraries.
+If you prefer to build `pdcurses.lib` separately, run the helper script above
+before building the wheel.
+
 ### Rebuilding the wheels for Python 3.6, 3.7, 3.8, 3.9, 3.10, 3.11, 3.12, and 3.13
 
 In `x86 Native Tools Command Prompt for VS 2022`:
